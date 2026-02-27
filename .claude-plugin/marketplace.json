@@ -1,0 +1,31 @@
+{
+  "name": "atlassian-tools",
+  "owner": {
+    "name": "bjlee2024",
+    "email": "bjlee2024@users.noreply.github.com"
+  },
+  "metadata": {
+    "description": "Atlassian Confluence & Jira CLI plugin for Claude Code — 140+ commands via Python SDK",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "atlassian-cli-plugin",
+      "source": {
+        "source": "github",
+        "repo": "bjlee2024/atlassian-cli-plugin"
+      },
+      "description": "Comprehensive Atlassian CLI for Confluence & Jira — pages, issues, search, agile, cross-service workflows",
+      "version": "0.1.0",
+      "author": {
+        "name": "bjlee2024"
+      },
+      "homepage": "https://github.com/bjlee2024/atlassian-cli-plugin",
+      "repository": "https://github.com/bjlee2024/atlassian-cli-plugin",
+      "license": "MIT",
+      "keywords": ["atlassian", "confluence", "jira", "cli", "agile", "search", "python"],
+      "category": "productivity",
+      "tags": ["atlassian", "confluence", "jira", "project-management"]
+    }
+  ]
+}
