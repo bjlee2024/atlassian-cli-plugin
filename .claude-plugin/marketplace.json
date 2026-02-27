@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Atlassian Confluence & Jira CLI plugin for Claude Code — 140+ commands via Python SDK",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "plugins": [
     {
@@ -16,7 +16,7 @@
         "repo": "bjlee2024/atlassian-cli-plugin"
       },
       "description": "Comprehensive Atlassian CLI for Confluence & Jira — pages, issues, search, agile, cross-service workflows",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "bjlee2024"
       },

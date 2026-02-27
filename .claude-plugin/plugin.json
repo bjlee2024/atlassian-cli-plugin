@@ -1,6 +1,6 @@
 {
   "name": "atlassian-cli-plugin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Comprehensive Atlassian CLI for Confluence & Jira via Python SDK — 140+ commands with cross-service workflows",
   "author": {
     "name": "bjlee2024",
