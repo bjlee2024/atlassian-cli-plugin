@@ -1,0 +1,14 @@
+{
+  "name": "atlassian-cli-plugin",
+  "version": "0.1.0",
+  "description": "Comprehensive Atlassian CLI for Confluence & Jira via Python SDK — 140+ commands with cross-service workflows",
+  "author": {
+    "name": "bjlee2024",
+    "url": "https://github.com/bjlee2024"
+  },
+  "repository": "https://github.com/bjlee2024/atlassian-cli-plugin",
+  "license": "MIT",
+  "keywords": ["atlassian", "confluence", "jira", "cli", "agile", "search"],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

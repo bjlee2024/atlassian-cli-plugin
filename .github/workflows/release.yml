@@ -1,0 +1,196 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read plugin version
+        id: version
+        run: |
+          VERSION=$(python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git ls-remote --tags origin "refs/tags/v${{ steps.version.outputs.version }}" | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build plugin zip
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          PLUGIN_NAME="atlassian-cli-plugin"
+          VERSION="${{ steps.version.outputs.version }}"
+          ZIP_NAME="${PLUGIN_NAME}-${VERSION}.zip"
+
+          # Create a clean staging directory with the plugin root folder
+          mkdir -p /tmp/staging/${PLUGIN_NAME}
+
+          # Copy plugin manifest (required for Claude Code plugin discovery)
+          cp -r .claude-plugin /tmp/staging/${PLUGIN_NAME}/
+
+          # Copy skills (SKILL.md files for Claude Code slash commands)
+          cp -r skills /tmp/staging/${PLUGIN_NAME}/
+
+          # Copy hooks (constitution safety hooks)
+          cp -r hooks /tmp/staging/${PLUGIN_NAME}/
+
+          # Copy Python CLI source
+          cp -r src /tmp/staging/${PLUGIN_NAME}/
+          cp pyproject.toml /tmp/staging/${PLUGIN_NAME}/
+
+          # Copy installer and docs
+          cp install.sh /tmp/staging/${PLUGIN_NAME}/
+          cp CLAUDE.md /tmp/staging/${PLUGIN_NAME}/
+          cp README.md /tmp/staging/${PLUGIN_NAME}/
+          cp -r docs /tmp/staging/${PLUGIN_NAME}/
+
+          # Build zip from staging (plugin root is the top-level folder)
+          cd /tmp/staging
+          zip -r "${GITHUB_WORKSPACE}/${ZIP_NAME}" "${PLUGIN_NAME}/" \
+            -x "${PLUGIN_NAME}/.git/*" \
+            -x "${PLUGIN_NAME}/__pycache__/*" \
+            -x "${PLUGIN_NAME}/**/__pycache__/*" \
+            -x "${PLUGIN_NAME}/.omc/*"
+
+          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_ENV"
+
+          # Verify zip structure
+          echo "=== Zip contents ==="
+          unzip -l "${GITHUB_WORKSPACE}/${ZIP_NAME}" | head -40
+          echo ""
+
+          # Verify critical files exist in zip
+          echo "=== Verifying plugin structure ==="
+          ERRORS=0
+
+          # Check plugin manifest
+          if ! unzip -l "${GITHUB_WORKSPACE}/${ZIP_NAME}" | grep -q ".claude-plugin/plugin.json"; then
+            echo "FAIL: .claude-plugin/plugin.json missing"
+            ERRORS=$((ERRORS+1))
+          else
+            echo "OK: .claude-plugin/plugin.json"
+          fi
+
+          # Check at least one skill
+          if ! unzip -l "${GITHUB_WORKSPACE}/${ZIP_NAME}" | grep -q "skills/.*/SKILL.md"; then
+            echo "FAIL: No SKILL.md files found"
+            ERRORS=$((ERRORS+1))
+          else
+            SKILL_COUNT=$(unzip -l "${GITHUB_WORKSPACE}/${ZIP_NAME}" | grep -c "SKILL.md")
+            echo "OK: ${SKILL_COUNT} SKILL.md files found"
+          fi
+
+          # Check hooks
+          if ! unzip -l "${GITHUB_WORKSPACE}/${ZIP_NAME}" | grep -q "hooks/hooks.json"; then
+            echo "FAIL: hooks/hooks.json missing"
+            ERRORS=$((ERRORS+1))
+          else
+            echo "OK: hooks/hooks.json"
+          fi
+
+          # Check CLAUDE.md
+          if ! unzip -l "${GITHUB_WORKSPACE}/${ZIP_NAME}" | grep -q "CLAUDE.md"; then
+            echo "FAIL: CLAUDE.md missing"
+            ERRORS=$((ERRORS+1))
+          else
+            echo "OK: CLAUDE.md"
+          fi
+
+          # Check Python source
+          if ! unzip -l "${GITHUB_WORKSPACE}/${ZIP_NAME}" | grep -q "src/atlassian_cli/cli.py"; then
+            echo "FAIL: src/atlassian_cli/cli.py missing"
+            ERRORS=$((ERRORS+1))
+          else
+            echo "OK: src/atlassian_cli/cli.py"
+          fi
+
+          if [ $ERRORS -gt 0 ]; then
+            echo "ERROR: ${ERRORS} verification failures"
+            exit 1
+          fi
+          echo "=== All verifications passed ==="
+
+      - name: Generate release notes
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ZIP_NAME="${{ env.zip_name }}"
+
+          # Get commits since last tag (or all if first release)
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
+          else
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          fi
+
+          cat > /tmp/release-notes.md << 'NOTES_HEADER'
+          ## Atlassian CLI Plugin
+          NOTES_HEADER
+
+          cat >> /tmp/release-notes.md << NOTES_EOF
+
+          ### Installation
+
+          **Option 1: Plugin mode (Claude Code 1.0.33+)**
+          \`\`\`bash
+          # Extract and load as plugin
+          unzip ${ZIP_NAME} -d ~/.claude/plugins/
+          claude --plugin-dir ~/.claude/plugins/atlassian-cli-plugin
+          \`\`\`
+
+          **Option 2: Project-level skills**
+          \`\`\`bash
+          # Extract skills into your project
+          unzip ${ZIP_NAME}
+          cp -r atlassian-cli-plugin/skills/ .claude/skills/
+          \`\`\`
+
+          **Option 3: Install CLI globally**
+          \`\`\`bash
+          unzip ${ZIP_NAME}
+          cd atlassian-cli-plugin && ./install.sh
+          \`\`\`
+
+          ### Setup
+          \`\`\`bash
+          atlassian-cli init
+          # Or set: ATLASSIAN_URL, ATLASSIAN_EMAIL, ATLASSIAN_TOKEN
+          \`\`\`
+
+          ### What's Included
+          - **4 Skills**: \`/atlassian-init\`, \`/confluence\`, \`/jira\`, \`/atlassian-search-guide\`
+          - **60+ Confluence commands**: Pages, search, spaces, attachments, templates
+          - **80+ Jira commands**: Issues, search, projects, agile, comments, attachments, worklogs
+          - **5 Cross-service workflows**: Sprint reports, release notes, page-issue linking
+          - **Constitution hooks**: Write operations require user confirmation
+
+          ### Changes
+          ${COMMITS}
+          NOTES_EOF
+
+      - name: Create release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Atlassian CLI Plugin ${{ steps.version.outputs.tag }}"
+          body_path: /tmp/release-notes.md
+          files: ${{ env.zip_name }}
+          draft: false
+          prerelease: false
