@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "description": "Atlassian Confluence write operation confirmation",
+        "matcher": "Bash",
+        "command": "node -e \"const input=JSON.parse(process.argv[1]||'{}'); const cmd=input.command||''; if(/atlassian-cli\\s+(confluence|conf)\\s+/.test(cmd)){const writes=['page\\\\s+(create|update|upsert|append|delete|move)','page\\\\s+label-(add|remove)','page\\\\s+property-(set|delete)','attachment\\\\s+(upload|delete)','template\\\\s+(create|delete)']; const isWrite=writes.some(w=>new RegExp(w).test(cmd)); if(isWrite){const action=cmd.match(/(?:page|attachment|template)\\\\s+(\\\\S+)/)?.[1]||'unknown'; const risk=/(delete|remove)/.test(action)?'HIGH':/(create|upload)/.test(action)?'LOW':'MEDIUM'; console.log(JSON.stringify({decision:'block',reason:'⚠️ Confluence WRITE operation detected: '+action+' (Risk: '+risk+')\\\\nCommand: '+cmd+'\\\\nPlease confirm with the user before proceeding.'}));process.exit(0)}} console.log(JSON.stringify({decision:'allow'}))\" -- \"$TOOL_INPUT\"",
+        "comment": "Detects Confluence write operations: page create/update/upsert/append/delete/move, label/property changes, attachment upload/delete, template create/delete"
+      },
+      {
+        "type": "command",
+        "description": "Atlassian Jira write operation confirmation",
+        "matcher": "Bash",
+        "command": "node -e \"const input=JSON.parse(process.argv[1]||'{}'); const cmd=input.command||''; if(/atlassian-cli\\s+jira\\s+/.test(cmd)){const writes=['issue\\\\s+(create|bulk-create|update|bulk-update|delete|transition|assign|archive)','issue\\\\s+label-(add|remove)','issue\\\\s+link','sprint\\\\s+(create|add-issues|rename)','comment\\\\s+(add|edit)','attachment\\\\s+(upload|delete)','worklog\\\\s+add','filter\\\\s+(create|update|delete)','component\\\\s+create','version\\\\s+create','backlog\\\\s+add']; const isWrite=writes.some(w=>new RegExp(w).test(cmd)); if(isWrite){const action=cmd.match(/(?:issue|sprint|comment|attachment|worklog|filter|component|version|backlog)\\\\s+(\\\\S+)/)?.[1]||'unknown'; const risk=/(delete|bulk-delete|archive)/.test(action)?'HIGH':/(bulk-create|bulk-update)/.test(action)?'CRITICAL':/(create|add|upload)/.test(action)?'LOW':'MEDIUM'; console.log(JSON.stringify({decision:'block',reason:'⚠️ Jira WRITE operation detected: '+action+' (Risk: '+risk+')\\\\nCommand: '+cmd+'\\\\nPlease confirm with the user before proceeding.'}));process.exit(0)}} console.log(JSON.stringify({decision:'allow'}))\" -- \"$TOOL_INPUT\"",
+        "comment": "Detects Jira write operations: issue CRUD, transitions, assignments, sprint management, comments, attachments, worklogs, filters, components, versions"
+      }
+    ]
+  }
+}
