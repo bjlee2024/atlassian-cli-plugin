@@ -6,20 +6,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const i=JSON.parse(d);const cmd=i.tool_input?.command||'';const destructive=/atlassian-cli\\s+(confluence|conf)\\s+(page\\s+(create|update|upsert|append|delete|move)|page\\s+label-(add|remove)|page\\s+property-(set|delete)|attachment\\s+(upload|delete)|template\\s+(create|delete))/.test(cmd);if(destructive){console.error('[Confluence Constitution] BLOCKED: This command modifies Confluence data.');console.error('[Confluence Constitution] Command: '+cmd.substring(0,200));console.error('[Confluence Constitution] You MUST use AskUserQuestion to get explicit user approval before executing this command.');console.error('[Confluence Constitution] Show: exact command, what it does, target page/space, risk level, reversibility.');process.exit(2)}}catch{}console.log(d)})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const i=JSON.parse(d);const cmd=i.tool_input?.command||'';const destructive=/atlassian-cli\\s+(confluence|conf)\\s+(page\\s+(create|update|upsert|append|delete|move)|page\\s+label-(add|remove)|page\\s+property-(set|delete)|attachment\\s+(upload|delete)|template\\s+(create|delete))/.test(cmd);if(destructive){console.error('[Confluence Constitution] WARNING: This command modifies Confluence data.');console.error('[Confluence Constitution] Command: '+cmd.substring(0,200));console.error('[Confluence Constitution] Please confirm before proceeding: what it does, target page/space, risk level.');}}catch{}console.log(d)})\""
           }
         ],
-        "description": "Confluence Constitution: Block write operations (page create/update/delete, attachments, labels, properties, templates) until user confirms"
+        "description": "Confluence Constitution: Warn on write operations (page create/update/delete, attachments, labels, properties, templates) - Claude Code permission system handles approval"
       },
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const i=JSON.parse(d);const cmd=i.tool_input?.command||'';const destructive=/atlassian-cli\\s+jira\\s+(issue\\s+(create|bulk-create|update|bulk-update|delete|transition|assign|archive)|issue\\s+label-(add|remove)|issue\\s+link|sprint\\s+(create|add-issues|rename)|comment\\s+(add|edit)|attachment\\s+(upload|delete)|worklog\\s+add|filter\\s+(create|update|delete)|component\\s+create|version\\s+create|backlog\\s+add)/.test(cmd);if(destructive){console.error('[Jira Constitution] BLOCKED: This command modifies Jira data.');console.error('[Jira Constitution] Command: '+cmd.substring(0,200));console.error('[Jira Constitution] You MUST use AskUserQuestion to get explicit user approval before executing this command.');console.error('[Jira Constitution] Show: exact command, what it does, target issue/project, risk level, reversibility.');process.exit(2)}}catch{}console.log(d)})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const i=JSON.parse(d);const cmd=i.tool_input?.command||'';const destructive=/atlassian-cli\\s+jira\\s+(issue\\s+(create|bulk-create|update|bulk-update|delete|transition|assign|archive)|issue\\s+label-(add|remove)|issue\\s+link|sprint\\s+(create|add-issues|rename)|comment\\s+(add|edit)|attachment\\s+(upload|delete)|worklog\\s+add|filter\\s+(create|update|delete)|component\\s+create|version\\s+create|backlog\\s+add)/.test(cmd);if(destructive){console.error('[Jira Constitution] WARNING: This command modifies Jira data.');console.error('[Jira Constitution] Command: '+cmd.substring(0,200));console.error('[Jira Constitution] Please confirm before proceeding: what it does, target issue/project, risk level.');}}catch{}console.log(d)})\""
           }
         ],
-        "description": "Jira Constitution: Block write operations (issue CRUD, transitions, assignments, sprints, comments, attachments, worklogs) until user confirms"
+        "description": "Jira Constitution: Warn on write operations (issue CRUD, transitions, assignments, sprints, comments, attachments, worklogs) - Claude Code permission system handles approval"
       }
     ]
   }
