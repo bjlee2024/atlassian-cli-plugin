@@ -36,7 +36,7 @@ Services: `confluence` (alias: `conf`), `jira`, `cross`, `init`
 
 ## Constitution (Safety)
 
-**All write operations require user confirmation.** The hooks in `hooks/hooks.json` detect write operations and block execution until the user approves.
+**All write operations require user confirmation.** The hooks in `hooks/hooks.json` detect write operations and emit warnings via stderr. Claude Code's built-in permission system then handles the actual user approval before executing the command.
 
 Write operations include:
 - **Confluence**: page create/update/delete, attachment upload/delete, label/property changes
