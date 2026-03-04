@@ -10,7 +10,7 @@
     {
       "name": "atlassian-cli-plugin",
       "description": "Comprehensive Atlassian CLI for Confluence & Jira — pages, issues, search, agile, cross-service workflows",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "author": {
         "name": "bjlee2024"
       },
