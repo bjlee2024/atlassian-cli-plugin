@@ -70,6 +70,23 @@ atlassian-cli jira project list
 ```
 Then update config with chosen defaults.
 
+### 9. Plugin Priority Setup
+Ask the user if they want this plugin as the default Atlassian tool:
+
+Use `AskUserQuestion` with:
+- **Question**: "이 플러그인을 Atlassian(Confluence/Jira) 접근의 기본 도구로 설정할까요? 설정하면 Atlassian MCP 도구보다 이 플러그인이 우선 사용됩니다."
+- **Options**:
+  - "Yes (Recommended)" — 플러그인 우선 사용 활성화
+  - "No" — 기존 동작 유지
+
+If the user agrees:
+- Inform them that the plugin's CLAUDE.md already contains the priority rule
+- The rule is automatically loaded when the plugin is installed
+- No additional configuration needed
+
+If the user declines:
+- Skip this step; the plugin will still work when explicitly invoked via skills
+
 ## Environment Variables (Alternative)
 Instead of config file, users can set:
 - `ATLASSIAN_URL`
