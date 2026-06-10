@@ -186,9 +186,42 @@ atlassian-cli cross link-page-to-issue --page 12345 --issue PROJ-123
 | `/jira` | `jira` | Jira operations |
 | `/atlassian-search-guide` | `search guide` | AI search scenarios |
 
+## Claude Desktop (MCP Server)
+
+Claude Desktop cannot load Claude Code plugins/skills/hooks directly — it talks to external tools via **MCP servers**. This package ships a thin MCP bridge that wraps the full CLI (all 140+ commands) and exposes it to Claude Desktop.
+
+**1. Install with the MCP extra:**
+
+```bash
+pip install -e ".[mcp]"   # adds the `mcp` dependency + `atlassian-cli-mcp` script
+```
+
+**2. Configure credentials** (the MCP server reuses the CLI's config):
+
+```bash
+atlassian-cli init        # writes ~/.atlassian-cli/config.json
+```
+
+**3. Register in `claude_desktop_config.json`**
+(macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "atlassian-cli": {
+      "command": "/absolute/path/to/atlassian-cli-mcp"
+    }
+  }
+}
+```
+
+Find the absolute path with `which atlassian-cli-mcp`. Restart Claude Desktop, then ask it to use the **`atlassian_cli`** / **`atlassian_help`** tools.
+
+The bridge mirrors the plugin's safety Constitution: write operations are **blocked** unless the model passes `confirm_write=true`, so Claude must confirm the change with you first.
+
 ## Safety
 
-All write operations are protected by constitution hooks that require explicit user confirmation before execution. Read operations are always safe.
+All write operations are protected by constitution hooks (Claude Code) / the `confirm_write` guard (Claude Desktop MCP) that require explicit user confirmation before execution. Read operations are always safe.
 
 ## Requirements
 
