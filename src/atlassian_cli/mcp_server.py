@@ -22,6 +22,7 @@ Run with:  python -m atlassian_cli.mcp_server   (or the `atlassian-cli-mcp` scri
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -217,8 +218,25 @@ def atlassian_help(path: list[str] | None = None) -> str:
     return _run_cli(list(path or []) + ["--help"])
 
 
+def _serve(argv=None):
+    """전송 선택: 기본 stdio, --http면 streamable-http(host/port 설정)."""
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--http", action="store_true")
+    ap.add_argument("--host", default=os.environ.get("MCP_HTTP_HOST", "127.0.0.1"))
+    ap.add_argument("--port", type=int, default=None)
+    args = ap.parse_args(argv)
+    if args.http:
+        mcp.settings.host = args.host
+        if args.port is not None:
+            mcp.settings.port = args.port
+        mcp.run(transport="streamable-http")
+    else:
+        mcp.run()
+
+
 def main() -> None:
-    mcp.run()
+    _serve()
 
 
 if __name__ == "__main__":
