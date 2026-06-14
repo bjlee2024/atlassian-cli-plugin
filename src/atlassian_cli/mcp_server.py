@@ -22,11 +22,26 @@ Run with:  python -m atlassian_cli.mcp_server   (or the `atlassian-cli-mcp` scri
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
 
 from mcp.server.fastmcp import FastMCP
+
+# 질의 로그 계측 (사내 온톨로지 시스템 단계 3) — 없으면 no-op (플러그인 독립성 유지)
+import os as _os
+import time as _time
+_sys_path_extra = _os.environ.get(
+    "QUERY_INSTRUMENTATION_DIR",
+    _os.path.expanduser("~/workspace/hermes/query-instrumentation"))
+if _sys_path_extra not in sys.path:
+    sys.path.insert(0, _sys_path_extra)
+try:
+    from instrument import record as _instr  # type: ignore
+except Exception:
+    def _instr(*a, **k):  # noqa: ANN
+        pass
 
 mcp = FastMCP("atlassian-cli")
 
@@ -168,6 +183,7 @@ def atlassian_cli(args: list[str], confirm_write: bool = False) -> str:
         return "ERROR: 'args' is empty. Provide CLI arguments, e.g. ['jira','user','me']."
 
     if _is_write(args) and not confirm_write:
+        _instr("atlassian", "atlassian_cli", 0, False, guard="read-only")
         return (
             "WRITE OPERATION BLOCKED — confirmation required.\n\n"
             f"Command: atlassian-cli {' '.join(args)}\n\n"
@@ -180,7 +196,10 @@ def atlassian_cli(args: list[str], confirm_write: bool = False) -> str:
     if not _has_format_flag(call_args):
         call_args += ["--format", "json"]
 
+    _t0 = _time.time()
     result = _run_cli(call_args)
+    _ok = not result.startswith(("ERROR", "AUTH FAILURE"))
+    _instr("atlassian", "atlassian_cli", _time.time() - _t0, _ok)
     if len(result.encode("utf-8")) > MAX_RESULT_BYTES:
         return _too_large_message(result, call_args)
     return result
@@ -199,8 +218,25 @@ def atlassian_help(path: list[str] | None = None) -> str:
     return _run_cli(list(path or []) + ["--help"])
 
 
+def _serve(argv=None):
+    """전송 선택: 기본 stdio, --http면 streamable-http(host/port 설정)."""
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--http", action="store_true")
+    ap.add_argument("--host", default=os.environ.get("MCP_HTTP_HOST", "127.0.0.1"))
+    ap.add_argument("--port", type=int, default=None)
+    args = ap.parse_args(argv)
+    if args.http:
+        mcp.settings.host = args.host
+        if args.port is not None:
+            mcp.settings.port = args.port
+        mcp.run(transport="streamable-http")
+    else:
+        mcp.run()
+
+
 def main() -> None:
-    mcp.run()
+    _serve()
 
 
 if __name__ == "__main__":
