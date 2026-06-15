@@ -200,6 +200,12 @@ def atlassian_cli(args: list[str], confirm_write: bool = False) -> str:
     Services: confluence (alias conf), jira, cross, init.
     Use the `atlassian_help` tool to discover available subcommands and options.
 
+    CURRENT USER / "MY" QUERIES: every call runs as the requesting user's own
+    Atlassian account. For the user's OWN personal space, ALWAYS use
+    args=["confluence","space","mine"] — do NOT guess a personal space key or
+    pick one from `space list` (those are OTHER people's spaces). For the
+    current account identity use args=["jira","user","me"].
+
     WRITE SAFETY: Commands that modify Atlassian data (page/issue create/update/
     delete, transitions, comments, attachments, labels, sprints, etc.) are
     blocked unless you pass confirm_write=True. When blocked, this returns a

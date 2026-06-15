@@ -41,6 +41,18 @@ def handle_space(args):
             result = conf.get_space(args.key)
             format_output(result, fmt=fmt)
 
+        elif cmd == "mine":
+            # 현재 인증된 사용자(=요청자)의 본인 개인 스페이스를 결정론적으로 해소.
+            # 추측 금지: accountId로 ~키(콜론·하이픈 제거)를 만들어 조회.
+            user = conf.get("rest/api/user/current") or {}
+            acct = user.get("accountId", "")
+            if not acct:
+                output_error("could not resolve current user accountId")
+                return
+            key = "~" + acct.replace(":", "").replace("-", "")
+            result = conf.get_space(key)
+            format_output(result, fmt=fmt)
+
         elif cmd == "content":
             result = conf.get_space_content(args.key)
             format_output(result, fmt=fmt)
