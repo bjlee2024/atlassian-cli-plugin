@@ -214,12 +214,17 @@ def atlassian_cli(args: list[str], confirm_write: bool = False) -> str:
         )
 
     call_args = list(args)
-    if not _has_format_flag(call_args):
-        call_args += ["--format", "json"]
+    fmt_injected = not _has_format_flag(call_args)
+    if fmt_injected:
+        call_args = call_args + ["--format", "json"]
 
     _t0 = _time.time()
     creds = _delegate_creds() if (_is_write(args) and confirm_write) else None
     result = _run_cli(call_args, creds=creds)
+    # delete 등 일부 서브커맨드는 --format 미지원 → 자동 주입이 argparse에 거부되면
+    # (unrecognized arguments: --format) 주입 제거 후 원본 인자로 1회 재시도.
+    if fmt_injected and "unrecognized arguments" in result and "--format" in result:
+        result = _run_cli(list(args), creds=creds)
     _ok = not result.startswith(("ERROR", "AUTH FAILURE"))
     _instr("atlassian", "atlassian_cli", _time.time() - _t0, _ok)
     if len(result.encode("utf-8")) > MAX_RESULT_BYTES:
