@@ -73,6 +73,21 @@ def _has_format_flag(args: list[str]) -> bool:
     return any(a in ("--format", "-f") for a in args)
 
 
+def _delegate_creds():
+    """쓰기 위임용 per-request Atlassian 유저 자격(request_ctx 헤더). 없으면 None."""
+    try:
+        from mcp.server.lowlevel.server import request_ctx
+        req = getattr(request_ctx.get(), "request", None)
+        if req is not None:
+            email = (req.headers.get("x-atlassian-email") or "").strip()
+            token = (req.headers.get("x-atlassian-token") or "").strip()
+            if email and token:
+                return {"email": email, "token": token}
+    except Exception:
+        pass
+    return None
+
+
 # Claude Desktop rejects tool results larger than 1 MB. Stay well under that to
 # leave headroom for JSON-RPC framing and multi-byte UTF-8 (Korean/CJK) chars.
 MAX_RESULT_BYTES = 800_000
@@ -117,15 +132,21 @@ def _too_large_message(result: str, args: list[str]) -> str:
     )
 
 
-def _run_cli(args: list[str]) -> str:
-    """Invoke the CLI via the current interpreter and format the result."""
+def _run_cli(args: list[str], creds=None) -> str:
+    """Invoke the CLI via the current interpreter and format the result.
+    creds={'email','token'} 주어지면 그 자격으로 실행(위임 쓰기)."""
     cmd = [sys.executable, "-m", "atlassian_cli", *args]
+    env = dict(os.environ)
+    if creds:
+        env["ATLASSIAN_EMAIL"] = creds["email"]
+        env["ATLASSIAN_TOKEN"] = creds["token"]
     try:
         proc = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             timeout=120,
+            env=env,
         )
     except subprocess.TimeoutExpired:
         return "ERROR: atlassian-cli timed out after 120s."
@@ -197,7 +218,8 @@ def atlassian_cli(args: list[str], confirm_write: bool = False) -> str:
         call_args += ["--format", "json"]
 
     _t0 = _time.time()
-    result = _run_cli(call_args)
+    creds = _delegate_creds() if (_is_write(args) and confirm_write) else None
+    result = _run_cli(call_args, creds=creds)
     _ok = not result.startswith(("ERROR", "AUTH FAILURE"))
     _instr("atlassian", "atlassian_cli", _time.time() - _t0, _ok)
     if len(result.encode("utf-8")) > MAX_RESULT_BYTES:
