@@ -227,10 +227,8 @@ def _serve(argv=None):
     ap.add_argument("--port", type=int, default=None)
     args = ap.parse_args(argv)
     if args.http:
-        mcp.settings.host = args.host
-        if args.port is not None:
-            mcp.settings.port = args.port
-        mcp.run(transport="streamable-http")
+        from auth import serve_http
+        serve_http(mcp, args.host, args.port)
     else:
         mcp.run()
 
