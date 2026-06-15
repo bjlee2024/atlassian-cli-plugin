@@ -74,7 +74,8 @@ def _has_format_flag(args: list[str]) -> bool:
 
 
 def _delegate_creds():
-    """쓰기 위임용 per-request Atlassian 유저 자격(request_ctx 헤더). 없으면 None."""
+    """요청자 본인 Atlassian 자격(request_ctx 헤더 X-Atlassian-Email/Token). 없으면 None.
+    읽기·쓰기 모두 이 자격으로 실행 — 관련 없는 공유/기본 계정으로 동작하지 않게 한다."""
     try:
         from mcp.server.lowlevel.server import request_ctx
         req = getattr(request_ctx.get(), "request", None)
@@ -86,6 +87,15 @@ def _delegate_creds():
     except Exception:
         pass
     return None
+
+
+def _is_served_request() -> bool:
+    """HTTP(streamable-http) 서빙 요청인가(요청자 컨텍스트 존재). 로컬 stdio면 False."""
+    try:
+        from mcp.server.lowlevel.server import request_ctx
+        return getattr(request_ctx.get(), "request", None) is not None
+    except Exception:
+        return False
 
 
 # Claude Desktop rejects tool results larger than 1 MB. Stay well under that to
@@ -219,7 +229,16 @@ def atlassian_cli(args: list[str], confirm_write: bool = False) -> str:
         call_args = call_args + ["--format", "json"]
 
     _t0 = _time.time()
-    creds = _delegate_creds() if (_is_write(args) and confirm_write) else None
+    # 읽기·쓰기 모두 요청자 본인 자격으로 실행.
+    creds = _delegate_creds()
+    # 서빙(HTTP) 요청인데 요청자 Atlassian 자격이 없으면 → 공유/기본 계정으로 동작하지 않도록 거부.
+    if creds is None and _is_served_request():
+        _instr("atlassian", "atlassian_cli", 0, False, guard="no-user-creds")
+        return (
+            "ATLASSIAN 유저 자격 없음 — 요청자 본인 Atlassian 계정(email + API token)이 필요합니다. "
+            "공유/기본 계정으로는 동작하지 않습니다. MCP 브리지 설정 "
+            "(~/.medit-bridge/config.toml [atlassian] email·token)에 본인 계정을 입력하세요."
+        )
     result = _run_cli(call_args, creds=creds)
     # delete 등 일부 서브커맨드는 --format 미지원 → 자동 주입이 argparse에 거부되면
     # (unrecognized arguments: --format) 주입 제거 후 원본 인자로 1회 재시도.
