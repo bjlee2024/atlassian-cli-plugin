@@ -159,6 +159,10 @@ def _build_confluence_parser(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("key", help="Space key")
     _add_format_arg(p)
 
+    p = space_sub.add_parser(
+        "mine", help="Get the CURRENT authenticated user's OWN personal space")
+    _add_format_arg(p)
+
     p = space_sub.add_parser("content", help="Get space content")
     p.add_argument("key", help="Space key")
     _add_format_arg(p)
