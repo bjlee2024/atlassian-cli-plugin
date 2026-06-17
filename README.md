@@ -1,3 +1,5 @@
+> **이전 안내 (2026-06-17):** 이 repo는 **`medit-ontology` 모노레포로 통합**되었습니다. 이후 작업은 모노레포의 `packages/atlassian-cli-plugin`에서 진행되며, 이 repo는 참조용으로 정지 보존됩니다.
+
 # Atlassian CLI Plugin for Claude Code
 
 A comprehensive Atlassian CLI plugin that provides **60+ Confluence** and **80+ Jira** commands via the `atlassian-python-api` SDK. No external CLI binaries required.
